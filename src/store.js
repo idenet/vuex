@@ -6,7 +6,7 @@ import { forEachValue, isObject, isPromise, assert, partial } from './util'
 let Vue // bind on install
 
 export class Store {
-  constructor (options = {}) {
+  constructor(options = {}) {
     // Auto install if it is not done yet and `window` has `Vue`.
     // To allow users to avoid auto-installation in some cases,
     // this code should be placed here. See #731
@@ -35,6 +35,7 @@ export class Store {
     this._actionSubscribers = []
     this._mutations = Object.create(null)
     this._wrappedGetters = Object.create(null)
+    // 将module挂载到root上
     this._modules = new ModuleCollection(options)
     this._modulesNamespaceMap = Object.create(null)
     this._subscribers = []
@@ -94,6 +95,7 @@ export class Store {
     )
 
     const mutation = { type, payload }
+    // entry mutation 对应的方法
     const entry = this._mutations[type]
     if (!entry) {
       if (__DEV__) {
@@ -101,6 +103,7 @@ export class Store {
       }
       return
     }
+    // withCommit 是同步的
     this._withCommit(() => {
       entry.forEach(function commitIterator (handler) {
         handler(payload)
@@ -114,7 +117,7 @@ export class Store {
     if (__DEV__ && options && options.silent) {
       console.warn(
         `[vuex] mutation type: ${type}. Silent option has been removed. ` +
-          'Use the filter functionality in the vue-devtools'
+        'Use the filter functionality in the vue-devtools'
       )
     }
   }
@@ -290,6 +293,7 @@ function resetStore (store, hot) {
   store._modulesNamespaceMap = Object.create(null)
   const state = store.state
   // init all modules
+  // 处初始化所有module
   installModule(store, state, [], store._modules.root, true)
   // reset vm
   resetStoreVM(store, state, hot)
@@ -329,10 +333,11 @@ function resetStoreVM (store, state, hot) {
   Vue.config.silent = silent
 
   // enable strict mode for new vm
+  // 阉割模式 不能直接修改state
   if (store.strict) {
     enableStrictMode(store)
   }
-
+  // 销毁操作
   if (oldVm) {
     if (hot) {
       // dispatch changes in all subscribed watchers
@@ -378,7 +383,7 @@ function installModule (store, rootState, path, module, hot) {
       Vue.set(parentState, moduleName, module.state)
     })
   }
-
+  // 为了保证不同module可以定义相当名字的函数，vuex给函数名加上了namespaced
   const local = (module.context = makeLocalContext(store, namespace, path))
 
   module.forEachMutation((mutation, key) => {
@@ -413,42 +418,43 @@ function makeLocalContext (store, namespace, path) {
     dispatch: noNamespace
       ? store.dispatch
       : (_type, _payload, _options) => {
-          const args = unifyObjectStyle(_type, _payload, _options)
-          const { payload, options } = args
-          let { type } = args
+        const args = unifyObjectStyle(_type, _payload, _options)
+        const { payload, options } = args
+        let { type } = args
 
-          if (!options || !options.root) {
-            type = namespace + type
-            if (__DEV__ && !store._actions[type]) {
-              console.error(
-                `[vuex] unknown local action type: ${args.type}, global type: ${type}`
-              )
-              return
-            }
+        if (!options || !options.root) {
+          // 拼接namespaced
+          type = namespace + type
+          if (__DEV__ && !store._actions[type]) {
+            console.error(
+              `[vuex] unknown local action type: ${args.type}, global type: ${type}`
+            )
+            return
           }
+        }
 
-          return store.dispatch(type, payload)
-        },
+        return store.dispatch(type, payload)
+      },
 
     commit: noNamespace
       ? store.commit
       : (_type, _payload, _options) => {
-          const args = unifyObjectStyle(_type, _payload, _options)
-          const { payload, options } = args
-          let { type } = args
+        const args = unifyObjectStyle(_type, _payload, _options)
+        const { payload, options } = args
+        let { type } = args
 
-          if (!options || !options.root) {
-            type = namespace + type
-            if (__DEV__ && !store._mutations[type]) {
-              console.error(
-                `[vuex] unknown local mutation type: ${args.type}, global type: ${type}`
-              )
-              return
-            }
+        if (!options || !options.root) {
+          type = namespace + type
+          if (__DEV__ && !store._mutations[type]) {
+            console.error(
+              `[vuex] unknown local mutation type: ${args.type}, global type: ${type}`
+            )
+            return
           }
-
-          store.commit(type, payload, options)
         }
+
+        store.commit(type, payload, options)
+      }
   }
 
   // getters and state object must be gotten lazily
