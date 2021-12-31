@@ -10,20 +10,24 @@ export class Store {
     // Auto install if it is not done yet and `window` has `Vue`.
     // To allow users to avoid auto-installation in some cases,
     // this code should be placed here. See #731
+    // 通过外链方式
     if (!Vue && typeof window !== 'undefined' && window.Vue) {
       install(window.Vue)
     }
 
     if (__DEV__) {
       assert(Vue, `must call Vue.use(Vuex) before creating a store instance.`)
-      assert(typeof Promise !== 'undefined', `vuex requires a Promise polyfill in this browser.`)
-      assert(this instanceof Store, `store must be called with the new operator.`)
+      assert(
+        typeof Promise !== 'undefined',
+        `vuex requires a Promise polyfill in this browser.`
+      )
+      assert(
+        this instanceof Store,
+        `store must be called with the new operator.`
+      )
     }
 
-    const {
-      plugins = [],
-      strict = false
-    } = options
+    const { plugins = [], strict = false } = options
 
     // store internal state
     this._committing = false
@@ -64,7 +68,8 @@ export class Store {
     // apply plugins
     plugins.forEach(plugin => plugin(this))
 
-    const useDevtools = options.devtools !== undefined ? options.devtools : Vue.config.devtools
+    const useDevtools =
+      options.devtools !== undefined ? options.devtools : Vue.config.devtools
     if (useDevtools) {
       devtoolPlugin(this)
     }
@@ -82,11 +87,11 @@ export class Store {
 
   commit (_type, _payload, _options) {
     // check object-style commit
-    const {
-      type,
-      payload,
-      options
-    } = unifyObjectStyle(_type, _payload, _options)
+    const { type, payload, options } = unifyObjectStyle(
+      _type,
+      _payload,
+      _options
+    )
 
     const mutation = { type, payload }
     const entry = this._mutations[type]
@@ -106,23 +111,17 @@ export class Store {
       .slice() // shallow copy to prevent iterator invalidation if subscriber synchronously calls unsubscribe
       .forEach(sub => sub(mutation, this.state))
 
-    if (
-      __DEV__ &&
-      options && options.silent
-    ) {
+    if (__DEV__ && options && options.silent) {
       console.warn(
         `[vuex] mutation type: ${type}. Silent option has been removed. ` +
-        'Use the filter functionality in the vue-devtools'
+          'Use the filter functionality in the vue-devtools'
       )
     }
   }
 
   dispatch (_type, _payload) {
     // check object-style dispatch
-    const {
-      type,
-      payload
-    } = unifyObjectStyle(_type, _payload)
+    const { type, payload } = unifyObjectStyle(_type, _payload)
 
     const action = { type, payload }
     const entry = this._actions[type]
@@ -145,36 +144,40 @@ export class Store {
       }
     }
 
-    const result = entry.length > 1
-      ? Promise.all(entry.map(handler => handler(payload)))
-      : entry[0](payload)
+    const result =
+      entry.length > 1
+        ? Promise.all(entry.map(handler => handler(payload)))
+        : entry[0](payload)
 
     return new Promise((resolve, reject) => {
-      result.then(res => {
-        try {
-          this._actionSubscribers
-            .filter(sub => sub.after)
-            .forEach(sub => sub.after(action, this.state))
-        } catch (e) {
-          if (__DEV__) {
-            console.warn(`[vuex] error in after action subscribers: `)
-            console.error(e)
+      result.then(
+        res => {
+          try {
+            this._actionSubscribers
+              .filter(sub => sub.after)
+              .forEach(sub => sub.after(action, this.state))
+          } catch (e) {
+            if (__DEV__) {
+              console.warn(`[vuex] error in after action subscribers: `)
+              console.error(e)
+            }
           }
-        }
-        resolve(res)
-      }, error => {
-        try {
-          this._actionSubscribers
-            .filter(sub => sub.error)
-            .forEach(sub => sub.error(action, this.state, error))
-        } catch (e) {
-          if (__DEV__) {
-            console.warn(`[vuex] error in error action subscribers: `)
-            console.error(e)
+          resolve(res)
+        },
+        error => {
+          try {
+            this._actionSubscribers
+              .filter(sub => sub.error)
+              .forEach(sub => sub.error(action, this.state, error))
+          } catch (e) {
+            if (__DEV__) {
+              console.warn(`[vuex] error in error action subscribers: `)
+              console.error(e)
+            }
           }
+          reject(error)
         }
-        reject(error)
-      })
+      )
     })
   }
 
@@ -189,9 +192,16 @@ export class Store {
 
   watch (getter, cb, options) {
     if (__DEV__) {
-      assert(typeof getter === 'function', `store.watch only accepts a function.`)
+      assert(
+        typeof getter === 'function',
+        `store.watch only accepts a function.`
+      )
     }
-    return this._watcherVM.$watch(() => getter(this.state, this.getters), cb, options)
+    return this._watcherVM.$watch(
+      () => getter(this.state, this.getters),
+      cb,
+      options
+    )
   }
 
   replaceState (state) {
@@ -205,11 +215,20 @@ export class Store {
 
     if (__DEV__) {
       assert(Array.isArray(path), `module path must be a string or an Array.`)
-      assert(path.length > 0, 'cannot register the root module by using registerModule.')
+      assert(
+        path.length > 0,
+        'cannot register the root module by using registerModule.'
+      )
     }
 
     this._modules.register(path, rawModule)
-    installModule(this, this.state, path, this._modules.get(path), options.preserveState)
+    installModule(
+      this,
+      this.state,
+      path,
+      this._modules.get(path),
+      options.preserveState
+    )
     // reset store to update getters...
     resetStoreVM(this, this.state)
   }
@@ -254,9 +273,7 @@ export class Store {
 
 function genericSubscribe (fn, subs, options) {
   if (subs.indexOf(fn) < 0) {
-    options && options.prepend
-      ? subs.unshift(fn)
-      : subs.push(fn)
+    options && options.prepend ? subs.unshift(fn) : subs.push(fn)
   }
   return () => {
     const i = subs.indexOf(fn)
@@ -335,7 +352,11 @@ function installModule (store, rootState, path, module, hot) {
   // register in namespace map
   if (module.namespaced) {
     if (store._modulesNamespaceMap[namespace] && __DEV__) {
-      console.error(`[vuex] duplicate namespace ${namespace} for the namespaced module ${path.join('/')}`)
+      console.error(
+        `[vuex] duplicate namespace ${namespace} for the namespaced module ${path.join(
+          '/'
+        )}`
+      )
     }
     store._modulesNamespaceMap[namespace] = module
   }
@@ -348,7 +369,9 @@ function installModule (store, rootState, path, module, hot) {
       if (__DEV__) {
         if (moduleName in parentState) {
           console.warn(
-            `[vuex] state field "${moduleName}" was overridden by a module with the same name at "${path.join('.')}"`
+            `[vuex] state field "${moduleName}" was overridden by a module with the same name at "${path.join(
+              '.'
+            )}"`
           )
         }
       }
@@ -356,7 +379,7 @@ function installModule (store, rootState, path, module, hot) {
     })
   }
 
-  const local = module.context = makeLocalContext(store, namespace, path)
+  const local = (module.context = makeLocalContext(store, namespace, path))
 
   module.forEachMutation((mutation, key) => {
     const namespacedType = namespace + key
@@ -387,37 +410,45 @@ function makeLocalContext (store, namespace, path) {
   const noNamespace = namespace === ''
 
   const local = {
-    dispatch: noNamespace ? store.dispatch : (_type, _payload, _options) => {
-      const args = unifyObjectStyle(_type, _payload, _options)
-      const { payload, options } = args
-      let { type } = args
+    dispatch: noNamespace
+      ? store.dispatch
+      : (_type, _payload, _options) => {
+          const args = unifyObjectStyle(_type, _payload, _options)
+          const { payload, options } = args
+          let { type } = args
 
-      if (!options || !options.root) {
-        type = namespace + type
-        if (__DEV__ && !store._actions[type]) {
-          console.error(`[vuex] unknown local action type: ${args.type}, global type: ${type}`)
-          return
+          if (!options || !options.root) {
+            type = namespace + type
+            if (__DEV__ && !store._actions[type]) {
+              console.error(
+                `[vuex] unknown local action type: ${args.type}, global type: ${type}`
+              )
+              return
+            }
+          }
+
+          return store.dispatch(type, payload)
+        },
+
+    commit: noNamespace
+      ? store.commit
+      : (_type, _payload, _options) => {
+          const args = unifyObjectStyle(_type, _payload, _options)
+          const { payload, options } = args
+          let { type } = args
+
+          if (!options || !options.root) {
+            type = namespace + type
+            if (__DEV__ && !store._mutations[type]) {
+              console.error(
+                `[vuex] unknown local mutation type: ${args.type}, global type: ${type}`
+              )
+              return
+            }
+          }
+
+          store.commit(type, payload, options)
         }
-      }
-
-      return store.dispatch(type, payload)
-    },
-
-    commit: noNamespace ? store.commit : (_type, _payload, _options) => {
-      const args = unifyObjectStyle(_type, _payload, _options)
-      const { payload, options } = args
-      let { type } = args
-
-      if (!options || !options.root) {
-        type = namespace + type
-        if (__DEV__ && !store._mutations[type]) {
-          console.error(`[vuex] unknown local mutation type: ${args.type}, global type: ${type}`)
-          return
-        }
-      }
-
-      store.commit(type, payload, options)
-    }
   }
 
   // getters and state object must be gotten lazily
@@ -471,14 +502,18 @@ function registerMutation (store, type, handler, local) {
 function registerAction (store, type, handler, local) {
   const entry = store._actions[type] || (store._actions[type] = [])
   entry.push(function wrappedActionHandler (payload) {
-    let res = handler.call(store, {
-      dispatch: local.dispatch,
-      commit: local.commit,
-      getters: local.getters,
-      state: local.state,
-      rootGetters: store.getters,
-      rootState: store.state
-    }, payload)
+    let res = handler.call(
+      store,
+      {
+        dispatch: local.dispatch,
+        commit: local.commit,
+        getters: local.getters,
+        state: local.state,
+        rootGetters: store.getters,
+        rootState: store.state
+      },
+      payload
+    )
     if (!isPromise(res)) {
       res = Promise.resolve(res)
     }
@@ -511,11 +546,20 @@ function registerGetter (store, type, rawGetter, local) {
 }
 
 function enableStrictMode (store) {
-  store._vm.$watch(function () { return this._data.$$state }, () => {
-    if (__DEV__) {
-      assert(store._committing, `do not mutate vuex store state outside mutation handlers.`)
-    }
-  }, { deep: true, sync: true })
+  store._vm.$watch(
+    function () {
+      return this._data.$$state
+    },
+    () => {
+      if (__DEV__) {
+        assert(
+          store._committing,
+          `do not mutate vuex store state outside mutation handlers.`
+        )
+      }
+    },
+    { deep: true, sync: true }
+  )
 }
 
 function getNestedState (state, path) {
@@ -530,12 +574,20 @@ function unifyObjectStyle (type, payload, options) {
   }
 
   if (__DEV__) {
-    assert(typeof type === 'string', `expects string as the type, but found ${typeof type}.`)
+    assert(
+      typeof type === 'string',
+      `expects string as the type, but found ${typeof type}.`
+    )
   }
 
   return { type, payload, options }
 }
 
+/**
+ * vuex注册入口
+ * @param {*} _Vue
+ * @returns
+ */
 export function install (_Vue) {
   if (Vue && _Vue === Vue) {
     if (__DEV__) {

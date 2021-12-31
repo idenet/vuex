@@ -8,9 +8,7 @@ export default function (Vue) {
     // for 1.x backwards compatibility.
     const _init = Vue.prototype._init
     Vue.prototype._init = function (options = {}) {
-      options.init = options.init
-        ? [vuexInit].concat(options.init)
-        : vuexInit
+      options.init = options.init ? [vuexInit].concat(options.init) : vuexInit
       _init.call(this, options)
     }
   }
@@ -22,10 +20,10 @@ export default function (Vue) {
   function vuexInit () {
     const options = this.$options
     // store injection
+    // 在vue实例中注入$store 对象， 并且逐级找到store
     if (options.store) {
-      this.$store = typeof options.store === 'function'
-        ? options.store()
-        : options.store
+      this.$store =
+        typeof options.store === 'function' ? options.store() : options.store
     } else if (options.parent && options.parent.$store) {
       this.$store = options.parent.$store
     }
